@@ -71,8 +71,12 @@ export function calculateAbsentDays(
 
 /**
  * Main calculation function
- * grantDate = when PR/visa was granted (defines the 5-year evaluation period)
- * startDate = when user started residing (may differ from grant date)
+ * grantDate = when PR/visa was granted
+ * startDate = when user started residing
+ * 
+ * For Canadian citizenship: the 5-year window is a ROLLING window ending today.
+ * Time before PR as temporary resident counts as 0.5 day/day, max 365 days credit.
+ * For most other types: period starts from grant date.
  */
 export function calculateResidency(
   startDate: string,
@@ -81,31 +85,85 @@ export function calculateResidency(
   grantDate?: string,
 ): DayCalculation {
   const today = todayStr();
-  // The evaluation period starts from the grant date (when PR was obtained)
-  const periodStart = grantDate || startDate;
-  const periodEnd = addYears(periodStart, statusType.periodYears);
+  const grant = grantDate || startDate;
 
-  // Total days elapsed in the period (up to today or period end)
+  // Determine period based on status type
+  let periodStart: string;
+  let periodEnd: string;
+
+  if (statusType.id === 'ca_citizenship' || statusType.id === 'us_citizenship') {
+    // Rolling window: 5 years back from today
+    periodEnd = today;
+    periodStart = addYears(today, -statusType.periodYears);
+  } else if (statusType.id === 'ca_pr_renewal') {
+    // Rolling window: 5 years back from today for PR renewal too
+    periodEnd = today;
+    periodStart = addYears(today, -statusType.periodYears);
+  } else {
+    // Fixed period from grant date
+    periodStart = grant;
+    periodEnd = addYears(grant, statusType.periodYears);
+  }
+
+  // Effective end is today or period end, whichever is earlier
   const effectiveEnd = today < periodEnd ? today : periodEnd;
+  
+  // Effective start: don't go before the user started residing
+  const effectiveStart = periodStart > startDate ? periodStart : startDate;
+  // But for the period display, keep periodStart as-is
+
   const totalDaysInPeriod = Math.max(0, daysBetween(periodStart, effectiveEnd));
 
-  // Calculate absent days
+  // Calculate absent days within the period
   const daysAbsent = calculateAbsentDays(records, periodStart, effectiveEnd);
 
-  // Days resided
-  const daysResided = Math.max(0, totalDaysInPeriod - daysAbsent);
+  // Calculate days resided
+  let daysResided: number;
+
+  if (statusType.absenceRule === 'half_credit' && grantDate) {
+    // Canadian citizenship special rule:
+    // Time before PR (as temp resident): 0.5 day/day, max 365 days credit
+    // Time after PR: 1 day/day
+    
+    const prDate = grantDate;
+    
+    // Days before PR within the period
+    const prePrStart = periodStart > startDate ? periodStart : startDate;
+    const prePrEnd = prDate < effectiveEnd ? prDate : effectiveEnd;
+    
+    let prePrDays = 0;
+    if (prePrStart < prePrEnd) {
+      const totalPrePr = daysBetween(prePrStart, prePrEnd);
+      const prePrAbsent = calculateAbsentDays(records, prePrStart, prePrEnd);
+      const prePrPresent = Math.max(0, totalPrePr - prePrAbsent);
+      // Half credit, max 365
+      prePrDays = Math.min(Math.floor(prePrPresent * 0.5), 365);
+    }
+
+    // Days after PR within the period
+    const postPrStart = prDate > periodStart ? prDate : periodStart;
+    let postPrDays = 0;
+    if (postPrStart < effectiveEnd) {
+      const totalPostPr = daysBetween(postPrStart, effectiveEnd);
+      const postPrAbsent = calculateAbsentDays(records, postPrStart, effectiveEnd);
+      postPrDays = Math.max(0, totalPostPr - postPrAbsent);
+    }
+
+    daysResided = prePrDays + postPrDays;
+  } else {
+    // Standard calculation
+    daysResided = Math.max(0, totalDaysInPeriod - daysAbsent);
+  }
 
   // Days remaining
   const daysRemaining = Math.max(0, statusType.requiredDays - daysResided);
 
   // Progress
-  const progressPercent = Math.min(
-    100,
-    Math.round((daysResided / statusType.requiredDays) * 100),
-  );
+  const progressPercent = statusType.requiredDays > 0
+    ? Math.min(100, Math.round((daysResided / statusType.requiredDays) * 100))
+    : 100;
 
   // Is on track?
-  const totalPeriodDays = daysBetween(periodStart, periodEnd);
   const daysLeft = Math.max(0, daysBetween(today, periodEnd));
   const isOnTrack = daysRemaining <= daysLeft;
 
