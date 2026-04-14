@@ -15,9 +15,9 @@ export const policies: ImmigrationPolicy[] = [
         requiredDays: 730,
         absenceRule: 'subtract',
         description:
-          'Must reside in Canada for at least 730 days (2 years) within a 5-year period to renew PR card.',
+          'Must reside in Canada for at least 730 days (2 years) within a 5-year period to renew PR card. Each day outside Canada does not count toward residency.',
         descriptionZh:
-          '必须在5年内在加拿大居住至少730天（2年）才能续签PR卡。离开加拿大的每一天都会从已居住天数中扣除。',
+          '必须在5年内在加拿大居住至少730天（2年）才能续签PR卡。不在加拿大的日子不计入居住天数。',
         grantDateLabel: 'When did you receive your PR (or last renewal)?',
         grantDateLabelZh: '你是哪天获得永居身份的（或上次续签日期）？',
       },
@@ -27,11 +27,11 @@ export const policies: ImmigrationPolicy[] = [
         nameZh: '入籍申请',
         periodYears: 5,
         requiredDays: 1095,
-        absenceRule: 'subtract',
+        absenceRule: 'half_credit',
         description:
-          'Must reside in Canada for at least 1,095 days (3 years) within the 5-year period immediately before applying for citizenship.',
+          'Must reside in Canada for at least 1,095 days (3 years) within the 5-year period before applying. Time as a temporary resident (work/study permit) before PR counts as half a day per day, up to a maximum of 365 days credit. Time as PR counts fully.',
         descriptionZh:
-          '必须在申请入籍前的5年内在加拿大居住至少1095天（3年）。离开加拿大的每一天都会从已居住天数中扣除。',
+          '必须在申请入籍前的5年内在加拿大居住至少1095天（3年）。获得PR之前以临时居民身份（工签/学签）在加拿大居住的时间，每天算0.5天，最多计365天。获得PR之后每天算1天。不在加拿大的日子不计入。',
         grantDateLabel: 'When did you receive your PR?',
         grantDateLabelZh: '你是哪天获得永居身份的？',
       },
@@ -48,13 +48,13 @@ export const policies: ImmigrationPolicy[] = [
         name: 'Green Card Maintenance',
         nameZh: '绿卡维持',
         periodYears: 1,
-        requiredDays: 185,
+        requiredDays: 1, // not a traditional "days required" — this tracks continuous absence
         absenceRule: 'reset',
         maxContinuousAbsence: 180,
         description:
-          'Should not be outside the US for more than 180 consecutive days, or risk losing green card status.',
+          'You should not leave the US for more than 180 consecutive days on a single trip, or you risk being considered to have abandoned your permanent residence. Trips over 1 year almost certainly result in loss of green card.',
         descriptionZh:
-          '连续离开美国不应超过180天，否则可能失去绿卡身份。',
+          '单次离开美国不应超过180天，否则可能被视为放弃永久居民身份。离境超过1年几乎一定会导致绿卡失效。本app会追踪你的连续离境天数并在接近180天时发出警告。',
         grantDateLabel: 'When did you receive your Green Card?',
         grantDateLabelZh: '你是哪天获得绿卡的？',
       },
@@ -67,9 +67,9 @@ export const policies: ImmigrationPolicy[] = [
         absenceRule: 'reset',
         maxContinuousAbsence: 180,
         description:
-          'Must be physically present in the US for at least 30 months out of 5 years. Any single trip over 6 months may reset the clock.',
+          'Must be physically present in the US for at least 30 months (approximately 913 days) out of the 5 years immediately before filing. Any single trip abroad exceeding 6 months (180 days) breaks continuous residence and may reset the 5-year period.',
         descriptionZh:
-          '必须在5年内在美国实际居住至少30个月（约913天）。单次离境超过6个月可能会重置计数。',
+          '必须在提交申请前的5年内在美国实际居住至少30个月（约913天）。单次离境超过6个月（180天）会中断连续居住，可能导致5年期重新计算。',
         grantDateLabel: 'When did you receive your Green Card?',
         grantDateLabelZh: '你是哪天获得绿卡的？',
       },
@@ -89,9 +89,9 @@ export const policies: ImmigrationPolicy[] = [
         requiredDays: 730,
         absenceRule: 'subtract',
         description:
-          'Must have lived in Australia for at least 2 years within the last 5 years to be eligible for a 5-year RRV.',
+          'Must have lived in Australia for at least 730 days (2 years) within the last 5 years to be eligible for a 5-year Resident Return Visa (subclass 155).',
         descriptionZh:
-          '必须在过去5年内在澳大利亚居住至少2年才有资格获得5年期居民返程签证。',
+          '必须在过去5年内在澳大利亚居住至少730天（2年）才有资格获得5年期居民返程签证（155类）。',
         grantDateLabel: 'When did you receive your PR?',
         grantDateLabelZh: '你是哪天获得永居身份的？',
       },
@@ -111,9 +111,9 @@ export const policies: ImmigrationPolicy[] = [
         requiredDays: 1350,
         absenceRule: 'subtract',
         description:
-          'Must be present in NZ for at least 1,350 days during the 5 years before applying, including 240 days in each of those 5 years.',
+          'Must have been physically present in NZ for at least 1,350 days during the 5 years before applying. Additionally, you must have been present for at least 240 days in each of those 5 years.',
         descriptionZh:
-          '必须在申请前的5年内在新西兰居住至少1350天，且每年至少240天。',
+          '必须在申请前的5年内在新西兰实际居住至少1350天。此外，这5年中的每一年都必须至少居住240天。',
         grantDateLabel: 'When did you receive your residency?',
         grantDateLabelZh: '你是哪天获得居留身份的？',
       },
@@ -127,18 +127,18 @@ export const policies: ImmigrationPolicy[] = [
     statusTypes: [
       {
         id: 'uk_ilr',
-        name: 'Indefinite Leave to Remain',
-        nameZh: '永久居留（ILR）',
+        name: 'Indefinite Leave to Remain (Skilled Worker)',
+        nameZh: '永久居留 ILR（工作签证路径）',
         periodYears: 5,
-        requiredDays: 1825,
+        requiredDays: 0, // not a cumulative days requirement
         absenceRule: 'subtract',
         maxContinuousAbsence: 180,
         description:
-          'Must not have been outside the UK for more than 180 days in any 12-month period during the qualifying period.',
+          'Must have lived and worked in the UK for 5 years on a qualifying visa. You must not have spent more than 180 days outside the UK in any 12-month period. This is a continuous residence requirement, not a cumulative days count.',
         descriptionZh:
-          '在合格期间内，任何12个月内离开英国不得超过180天。',
-        grantDateLabel: 'When did you receive your visa?',
-        grantDateLabelZh: '你是哪天获得签证的？',
+          '必须在英国持合格工作签证连续居住和工作5年。在任何12个月内离开英国不得超过180天。这是连续居住要求，不是累计天数要求。本app会追踪你每12个月内的离境天数。',
+        grantDateLabel: 'When did your qualifying visa start?',
+        grantDateLabelZh: '你的合格工作签证是哪天开始的？',
       },
     ],
   },
