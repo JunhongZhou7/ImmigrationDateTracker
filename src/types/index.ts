@@ -16,7 +16,8 @@ export interface TravelRecord {
 export interface UserProfile {
   country: string;
   statusType: string;
-  startDate: string; // ISO date string
+  statusGrantDate: string; // date PR/visa was granted or last renewed
+  startDate: string; // date started residing
   createdAt: string;
 }
 
@@ -38,6 +39,8 @@ export interface StatusType {
   maxContinuousAbsence?: number; // max consecutive days abroad
   description: string;
   descriptionZh: string;
+  grantDateLabel: string; // label for the grant date question
+  grantDateLabelZh: string;
 }
 
 export interface DayCalculation {

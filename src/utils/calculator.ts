@@ -71,15 +71,19 @@ export function calculateAbsentDays(
 
 /**
  * Main calculation function
+ * grantDate = when PR/visa was granted (defines the 5-year evaluation period)
+ * startDate = when user started residing (may differ from grant date)
  */
 export function calculateResidency(
   startDate: string,
   statusType: StatusType,
   records: TravelRecord[],
+  grantDate?: string,
 ): DayCalculation {
   const today = todayStr();
-  const periodEnd = addYears(startDate, statusType.periodYears);
-  const periodStart = startDate;
+  // The evaluation period starts from the grant date (when PR was obtained)
+  const periodStart = grantDate || startDate;
+  const periodEnd = addYears(periodStart, statusType.periodYears);
 
   // Total days elapsed in the period (up to today or period end)
   const effectiveEnd = today < periodEnd ? today : periodEnd;

@@ -5,25 +5,24 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Platform,
 } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import {policies} from '../data/policies';
 import {UserProfile, ImmigrationPolicy, StatusType} from '../types';
 import {saveProfile} from '../storage/store';
+import DateSelector from '../components/DateSelector';
 
 interface Props {
   onComplete: () => void;
 }
 
-type Step = 'country' | 'status' | 'date' | 'confirm';
+type Step = 'country' | 'status' | 'grantDate' | 'startDate' | 'confirm';
 
 export default function SetupScreen({onComplete}: Props) {
   const [step, setStep] = useState<Step>('country');
   const [selectedCountry, setSelectedCountry] = useState<ImmigrationPolicy | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<StatusType | null>(null);
+  const [grantDate, setGrantDate] = useState(new Date());
   const [startDate, setStartDate] = useState(new Date());
-  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const handleCountrySelect = (policy: ImmigrationPolicy) => {
     setSelectedCountry(policy);
@@ -33,11 +32,7 @@ export default function SetupScreen({onComplete}: Props) {
 
   const handleStatusSelect = (status: StatusType) => {
     setSelectedStatus(status);
-    setStep('date');
-  };
-
-  const handleDateConfirm = () => {
-    setStep('confirm');
+    setStep('grantDate');
   };
 
   const handleComplete = async () => {
@@ -46,6 +41,7 @@ export default function SetupScreen({onComplete}: Props) {
     const profile: UserProfile = {
       country: selectedCountry.country,
       statusType: selectedStatus.id,
+      statusGrantDate: grantDate.toISOString().split('T')[0],
       startDate: startDate.toISOString().split('T')[0],
       createdAt: new Date().toISOString(),
     };
@@ -99,46 +95,53 @@ export default function SetupScreen({onComplete}: Props) {
     </View>
   );
 
-  const renderDateStep = () => (
+  const renderGrantDateStep = () => (
     <View style={styles.stepContainer}>
       <TouchableOpacity onPress={() => setStep('status')} style={styles.backButton}>
         <Text style={styles.backText}>‹ 返回</Text>
       </TouchableOpacity>
-      <Text style={styles.title}>你是哪天开始居住的？</Text>
+      <Text style={styles.title}>{selectedStatus?.grantDateLabelZh}</Text>
+      <Text style={styles.subtitle}>{selectedStatus?.grantDateLabel}</Text>
+
+      <DateSelector
+        value={grantDate}
+        onChange={setGrantDate}
+        maxDate={new Date()}
+      />
+
+      <TouchableOpacity
+        style={styles.primaryButton}
+        onPress={() => setStep('startDate')}>
+        <Text style={styles.primaryButtonText}>下一步</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  const renderStartDateStep = () => (
+    <View style={styles.stepContainer}>
+      <TouchableOpacity onPress={() => setStep('grantDate')} style={styles.backButton}>
+        <Text style={styles.backText}>‹ 返回</Text>
+      </TouchableOpacity>
+      <Text style={styles.title}>你是哪天开始正式居住的？</Text>
       <Text style={styles.subtitle}>
         选择你在{selectedCountry?.countryNameZh}开始居住的日期
       </Text>
 
-      <TouchableOpacity
-        style={styles.dateButton}
-        onPress={() => setShowDatePicker(true)}>
-        <Text style={styles.dateText}>
-          📅 {startDate.toLocaleDateString('zh-CN', {year: 'numeric', month: 'long', day: 'numeric'})}
-        </Text>
-      </TouchableOpacity>
+      <DateSelector
+        value={startDate}
+        onChange={setStartDate}
+        maxDate={new Date()}
+      />
 
-      {(showDatePicker || Platform.OS === 'ios') && (
-        <DateTimePicker
-          value={startDate}
-          mode="date"
-          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-          maximumDate={new Date()}
-          onChange={(_, date) => {
-            setShowDatePicker(false);
-            if (date) setStartDate(date);
-          }}
-        />
-      )}
-
-      <TouchableOpacity style={styles.primaryButton} onPress={handleDateConfirm}>
-        <Text style={styles.primaryButtonText}>确认日期</Text>
+      <TouchableOpacity style={styles.primaryButton} onPress={() => setStep('confirm')}>
+        <Text style={styles.primaryButtonText}>下一步</Text>
       </TouchableOpacity>
     </View>
   );
 
   const renderConfirmStep = () => (
     <View style={styles.stepContainer}>
-      <TouchableOpacity onPress={() => setStep('date')} style={styles.backButton}>
+      <TouchableOpacity onPress={() => setStep('startDate')} style={styles.backButton}>
         <Text style={styles.backText}>‹ 返回</Text>
       </TouchableOpacity>
       <Text style={styles.title}>确认信息</Text>
@@ -155,7 +158,13 @@ export default function SetupScreen({onComplete}: Props) {
           <Text style={styles.confirmValue}>{selectedStatus?.nameZh}</Text>
         </View>
         <View style={styles.confirmRow}>
-          <Text style={styles.confirmLabel}>开始日期</Text>
+          <Text style={styles.confirmLabel}>获得身份日期</Text>
+          <Text style={styles.confirmValue}>
+            {grantDate.toLocaleDateString('zh-CN')}
+          </Text>
+        </View>
+        <View style={styles.confirmRow}>
+          <Text style={styles.confirmLabel}>开始居住日期</Text>
           <Text style={styles.confirmValue}>
             {startDate.toLocaleDateString('zh-CN')}
           </Text>
@@ -184,7 +193,8 @@ export default function SetupScreen({onComplete}: Props) {
 
       {step === 'country' && renderCountryStep()}
       {step === 'status' && renderStatusStep()}
-      {step === 'date' && renderDateStep()}
+      {step === 'grantDate' && renderGrantDateStep()}
+      {step === 'startDate' && renderStartDateStep()}
       {step === 'confirm' && renderConfirmStep()}
     </ScrollView>
   );
@@ -218,22 +228,12 @@ const styles = StyleSheet.create({
   arrow: {fontSize: 24, color: '#475569', marginLeft: 'auto'},
   backButton: {marginBottom: 16},
   backText: {fontSize: 16, color: '#60a5fa'},
-  dateButton: {
-    backgroundColor: '#1e293b',
-    borderRadius: 12,
-    padding: 20,
-    alignItems: 'center',
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#334155',
-  },
-  dateText: {fontSize: 18, color: '#f1f5f9'},
   primaryButton: {
     backgroundColor: '#3b82f6',
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
-    marginTop: 10,
+    marginTop: 20,
   },
   primaryButtonText: {fontSize: 17, fontWeight: '600', color: '#fff'},
   confirmCard: {

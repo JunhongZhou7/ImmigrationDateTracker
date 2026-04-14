@@ -67,7 +67,11 @@ export default function SettingsScreen({onReset}: Props) {
             <Text style={styles.value}>{status?.nameZh}</Text>
           </View>
           <View style={styles.row}>
-            <Text style={styles.label}>开始日期</Text>
+            <Text style={styles.label}>获得身份日期</Text>
+            <Text style={styles.value}>{profile?.statusGrantDate}</Text>
+          </View>
+          <View style={styles.row}>
+            <Text style={styles.label}>开始居住日期</Text>
             <Text style={styles.value}>{profile?.startDate}</Text>
           </View>
           <View style={styles.row}>

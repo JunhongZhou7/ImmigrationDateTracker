@@ -30,7 +30,7 @@ export default function DashboardScreen() {
     if (p) {
       const status = getStatusType(p.country, p.statusType);
       if (status) {
-        const result = calculateResidency(p.startDate, status, r);
+        const result = calculateResidency(p.startDate, status, r, p.statusGrantDate);
         setCalc(result);
         setAbroad(isCurrentlyAbroad(r));
         setTripDays(getCurrentTripDays(r));
@@ -137,6 +137,14 @@ export default function DashboardScreen() {
 
       {/* Dates Info */}
       <View style={styles.infoCard}>
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>获得身份日期</Text>
+          <Text style={styles.infoValue}>{profile.statusGrantDate}</Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>开始居住日期</Text>
+          <Text style={styles.infoValue}>{profile.startDate}</Text>
+        </View>
         <View style={styles.infoRow}>
           <Text style={styles.infoLabel}>考察期开始</Text>
           <Text style={styles.infoValue}>{calc.periodStartDate}</Text>
